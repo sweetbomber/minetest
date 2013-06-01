@@ -987,10 +987,10 @@ void ServerEnvironment::clearAllObjects()
 					<<" in "<<num_blocks_cleared<<" blocks ("
 					<<percent<<"%)"<<std::endl;
 		}
-	}*/
+	}
 	infostream<<"ServerEnvironment::clearAllObjects(): "
 			<<"Finished: Cleared "<<num_objs_cleared<<" objects"
-			<<" in "<<num_blocks_cleared<<" blocks"<<std::endl;
+			<<" in "<<num_blocks_cleared<<" blocks"<<std::endl;*/
 }
 
 void ServerEnvironment::step(float dtime)
