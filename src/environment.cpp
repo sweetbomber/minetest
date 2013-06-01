@@ -945,7 +945,7 @@ void ServerEnvironment::clearAllObjects()
 		m_active_objects.erase(*i);
 	}
 
-	std::list<v3s16> loadable_blocks;
+	/*std::list<v3s16> loadable_blocks;
 	infostream<<"ServerEnvironment::clearAllObjects(): "
 			<<"Listing all loadable blocks"<<std::endl;
 	m_map->listAllLoadableBlocks(loadable_blocks);
@@ -987,7 +987,7 @@ void ServerEnvironment::clearAllObjects()
 					<<" in "<<num_blocks_cleared<<" blocks ("
 					<<percent<<"%)"<<std::endl;
 		}
-	}
+	}*/
 	infostream<<"ServerEnvironment::clearAllObjects(): "
 			<<"Finished: Cleared "<<num_objs_cleared<<" objects"
 			<<" in "<<num_blocks_cleared<<" blocks"<<std::endl;
