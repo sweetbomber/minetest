@@ -43,7 +43,8 @@ void KMeans::addDataPoint(void *data, v3f point) {
 	printf("Added new dataPoint\n");
 	data_points.push_back(dataPoint);
 
-	// Calculate min and max limits over X,Y and Z. in x_limits, 'X' denotes min and 'Y' denotes max
+	// Calculate min and max limits over X,Y and Z. in x_limits, 
+	// 'X' denotes min and 'Y' denotes max
 	if(data_points.size() == 1) {
 		// For the first point, min and max are the same
 		x_limits = v2s16(point.X, point.X);
@@ -52,9 +53,12 @@ void KMeans::addDataPoint(void *data, v3f point) {
 	}
 	else {
 		// Regular min/max finding
-		x_limits = v2s16((x_limits.X > point.X)?point.X:x_limits.X, (x_limits.Y < point.X)?point.X:x_limits.Y);
-		y_limits = v2s16((y_limits.X > point.Y)?point.Y:y_limits.X, (y_limits.Y < point.Y)?point.Y:y_limits.Y);
-		z_limits = v2s16((z_limits.X > point.Z)?point.Z:z_limits.X, (z_limits.Y < point.Z)?point.Z:z_limits.Y);
+		x_limits = v2s16((x_limits.X > point.X)?point.X:x_limits.X,
+						(x_limits.Y < point.X)?point.X:x_limits.Y);
+		y_limits = v2s16((y_limits.X > point.Y)?point.Y:y_limits.X,
+						(y_limits.Y < point.Y)?point.Y:y_limits.Y);
+		z_limits = v2s16((z_limits.X > point.Z)?point.Z:z_limits.X,
+						(z_limits.Y < point.Z)?point.Z:z_limits.Y);
 	}
 }
 
@@ -69,8 +73,8 @@ void KMeans::clusterize(s16 number_of_clusters) {
 	// Create clusters
 	int i;
 	for(i = 0; i < number_of_clusters; i++) {
-		Cluster *cluster = new Cluster(x_limits, y_limits, z_limits); // Create cluster. The limits are used to randomize its initial centroid
-//		printf("acc: %f %f %f\n", cluster->accumulator.X, cluster->accumulator.Y, cluster->accumulator.Z);
+		// Create cluster. The limits are used to randomize its initial centroid
+		Cluster *cluster = new Cluster(x_limits, y_limits, z_limits); 
 		clusters.push_back(cluster);
 	}
 
@@ -95,48 +99,41 @@ void KMeans::clusterize(s16 number_of_clusters) {
 				}
 			}
 			
-			// Now that we have the nearest cluster, add this point to its accumulator, and increment number_of_points
+			// Now that we have the nearest cluster, add this point to its 
+			// accumulator, and increment number_of_points
 			nearest_cluster->accumulator += (*i_dataPoint)->point;
-			nearest_cluster->number_of_points ++;
-	//		printf("Point: (%f, %f, %f) Nearest cluster centroid: (%f, %f, %f) Acc: (%f, %f, %f)\n", (*i_dataPoint)->point.X, (*i_dataPoint)->point.Y, (*i_dataPoint)->point.Z, nearest_cluster->centroid.X, nearest_cluster->centroid.Y, nearest_cluster->centroid.Z, nearest_cluster->accumulator.X, nearest_cluster->accumulator.Y, nearest_cluster->accumulator.Z );
+			nearest_cluster->number_of_points++;
 		}
 		
-		// Now that all points have been classified, the new centroids can be calculated for each cluster.
-		// Their accumulators will be reset, and stability will be checked.
+		// Now that all points have been classified, the new centroids can 
+		// be calculated for each cluster. Their accumulators will be reset,
+		// and stability will be checked.
 		clustersStable = true;
 		for(i_cluster = clusters.begin(); i_cluster != clusters.end(); i_cluster++) {
-
 			// Checks if the cluster is empty
 			if((*i_cluster)->number_of_points > 0) {
-				v3f newCenter = v3f((*i_cluster)->accumulator.X/(*i_cluster)->number_of_points, (*i_cluster)->accumulator.Y/(*i_cluster)->number_of_points, (*i_cluster)->accumulator.Z/(*i_cluster)->number_of_points);
-//				printf("no %d\n", (*i_cluster)->number_of_points);
-				
+				v3f newCenter = v3f((*i_cluster)->accumulator.X/(*i_cluster)->number_of_points,
+									(*i_cluster)->accumulator.Y/(*i_cluster)->number_of_points,
+									(*i_cluster)->accumulator.Z/(*i_cluster)->number_of_points);
 				// Check for stability
 				if(newCenter != (*i_cluster)->centroid)
 					clustersStable = false;
 
 				(*i_cluster)->centroid = newCenter;
 				(*i_cluster)->resetAccumulator();
-					
-				printf("acc: %f %f %f new center %f %f %f\n", (*i_cluster)->accumulator.X, (*i_cluster)->accumulator.Y, (*i_cluster)->accumulator.Z, newCenter.X, newCenter.Y, newCenter.Z);
 			}
 			else {
-				printf("Overlap!\n");
-				// If the cluster has no points, its because it is overlapping with another one. Place it somewhere else.
+				// If the cluster is overlapping with another one. Place it somewhere else.
 				(*i_cluster)->randomize(x_limits, y_limits, z_limits);
 				(*i_cluster)->resetAccumulator();
 			}
-			
 		}
-		
 	}	
-	if(clustersStable) {
-		printf("Stabilized!!\n");
-	}
-	else {
-		printf("KMEANS_MAX_IT reached!\n");
-	}
 	
+	if(!clustersStable)
+		errorstream << "KMeans: clusterization proccess did not" <<
+									"converge. Try using less clusters." << b->name <<std::endl;
+		
 	// Now that the clusters are placed, add each of its points to their respective lists
 	std::list<ClusterDataPoint *>::iterator i_dataPoint;
 	std::list<Cluster *>::iterator i_cluster;
@@ -157,23 +154,20 @@ void KMeans::clusterize(s16 number_of_clusters) {
 		// Now that we have the nearest cluster, add this point to its list
 		nearest_cluster->data_points.push_back(*i_dataPoint);
 	}
-	
 	clusterization_finished = true;
-	// Done. Time to sleep...or have breakfast??!	
 }
 
 void * KMeans::getNearestDataPoint(v3f point) {
 	
 	float shortest_distance;
 	float distance;
-	// Have we clusterized points?
-/*	if(!clusterization_finished)
+
+	if(!clusterization_finished)
 		return NULL;
 
-	// Are there any clusters?
 	if(clusters.size() == 0)
 		return NULL;
-*/
+
 	// Search among known clusters for the nearest one
 	std::list<Cluster *>::iterator i_cluster;
 	Cluster *nearest_cluster = *(clusters.begin());
@@ -187,9 +181,8 @@ void * KMeans::getNearestDataPoint(v3f point) {
 		}
 	}
 
-	// Are there points in the list?
-//	if(nearest_cluster->data_points.size() == 0)
-//		return NULL;
+	if(nearest_cluster->data_points.size() == 0)
+		return NULL;
 
 	// Now search within the points belonging to that cluster
 	std::list<ClusterDataPoint *>::iterator i_dataPoint;
@@ -203,8 +196,6 @@ void * KMeans::getNearestDataPoint(v3f point) {
 			nearest_data_point = *i_dataPoint;
 		}
 	}
-
-	//printf("Alright! Min Distance: %f\n", shortest_distance);	
 	return nearest_data_point->data;
 
 }
@@ -215,7 +206,6 @@ Cluster::Cluster(v2s16 x_limits, v2s16 y_limits, v2s16 z_limits) {
 
 	// To initialize a cluster, two methods exist: place the centroid over a random point, or over a random (bounded) location. The later is used.
 	randomize(x_limits, y_limits, z_limits);
-	printf("Cluster added. Centroid: (%f, %f, %f) (%f, %f, %f)\n", centroid.X, centroid.Y, centroid.Z, accumulator.X, accumulator.Y, accumulator.Z);
 }
 
 void Cluster::resetAccumulator() {
