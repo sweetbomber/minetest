@@ -86,28 +86,56 @@ Biome *BiomeDefManager::createBiome(BiomeTerrainType btt) {
 // just a PoC, obviously needs optimization later on (precalculate this)
 void BiomeDefManager::calcBiomes(BiomeNoiseInput *input, u8 *biomeid_map) {
 	int i = 0;
-	printf("Calc biome...\n");
-	for (int y = 0; y != input->mapsize.Y; y++) {
-		for (int x = 0; x != input->mapsize.X; x++, i++) {
-			float heat     = (input->heat_map[i] + 1) * 50;
-			float humidity = (input->humidity_map[i] + 1) * 50;
+	int y, x;
+	float heat, humidity;
+
+	u32 counted_time = 0;
+	TimeTaker local_timer("calcBiome", &counted_time, PRECISION_MICRO);
+	for (y = 0; y != input->mapsize.Y; y++) {
+		for (x = 0; x != input->mapsize.X; x++, i++) {
+			heat     = (input->heat_map[i] + 1) * 50;
+			humidity = (input->humidity_map[i] + 1) * 50;
 //printf("Current Height: %d\n", input->height_map[i]);
 			
-			u32 counted_time = 0;
-			TimeTaker local_timer("getBiome", &counted_time, PRECISION_NANO);			
-			biomeid_map[i] = getBiome(heat, humidity, input->height_map[i])->id;
-			counted_time = local_timer.stop(true);
-			printf("Original getBiome: %d\n", counted_time);
+						
+//			biomeid_map[i] = getBiome(heat, humidity, input->height_map[i])->id;
 
 			//printf("Id1: %d  ", biomeid_map[i]);
-			counted_time = 0;
-			TimeTaker local_timer2("kMeans", &counted_time, PRECISION_NANO);
+//			counted_time = 0;
+//			TimeTaker local_timer2("kMeans", &counted_time, PRECISION_NANO);
 			biomeid_map[i] = ((Biome *)(kMeans->getNearestDataPoint(v3f(heat, humidity, input->height_map[i]))))->id;
-			counted_time = local_timer2.stop(true);
-			printf("kMeans: %d\n", counted_time);
+//			counted_time = local_timer2.stop(true);
+//			printf("kMeans: %d\n", counted_time);
 			//printf("Id2: %d\n", biomeid_map[i]);
 		}
 	}
+	counted_time = local_timer.stop(true);
+	printf("kmeans: %d\n", counted_time);
+
+	i = 0;
+	u32 counted_time2 = 0;
+	TimeTaker local_timer2("calcBiome2", &counted_time2, PRECISION_MICRO);
+	for (y = 0; y != input->mapsize.Y; y++) {
+		for (x = 0; x != input->mapsize.X; x++, i++) {
+			heat     = (input->heat_map[i] + 1) * 50;
+			humidity = (input->humidity_map[i] + 1) * 50;
+//printf("Current Height: %d\n", input->height_map[i]);
+			
+						
+			biomeid_map[i] = getBiome(heat, humidity, input->height_map[i])->id;
+
+			//printf("Id1: %d  ", biomeid_map[i]);
+//			counted_time = 0;
+//			TimeTaker local_timer2("kMeans", &counted_time, PRECISION_NANO);
+//			biomeid_map[i] = ((Biome *)(kMeans->getNearestDataPoint(v3f(heat, humidity, input->height_map[i]))))->id;
+//			counted_time = local_timer2.stop(true);
+//			printf("kMeans: %d\n", counted_time);
+			//printf("Id2: %d\n", biomeid_map[i]);
+		}
+	}
+	counted_time2 = local_timer2.stop(true);
+	printf("Original: %d\n", counted_time2);
+
 }
 
 
