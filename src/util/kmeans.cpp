@@ -21,10 +21,9 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "numeric.h"
 #include "kmeans.h"
 
-// TODO: Replace all v3s16 for v3s32
 KMeans::KMeans() {
-	dataPointRegistrationFinished = false;
-	clusterizationFinished = false;
+	data_point_registration_finished = false;
+	clusterization_finished = false;
 	printf("Class initialized\n");
 }
 
@@ -33,8 +32,8 @@ KMeans::~KMeans() {
 	printf("Class destroyed\n");
 }
 
-void KMeans::addDataPoint(void *data, v3s16 point) {
-	if(dataPointRegistrationFinished)
+void KMeans::addDataPoint(void *data, v3f point) {
+	if(data_point_registration_finished)
 		return;
 
 	ClusterDataPoint *dataPoint = new ClusterDataPoint;
@@ -42,36 +41,36 @@ void KMeans::addDataPoint(void *data, v3s16 point) {
 	dataPoint->point = point;
 
 	printf("Added new dataPoint\n");
-	dataPoints.push_back(dataPoint);
+	data_points.push_back(dataPoint);
 
-	// Calculate min and max limits over X,Y and Z. in xLimits, 'X' denotes min and 'Y' denotes max
-	if(dataPoints.size() == 1) {
+	// Calculate min and max limits over X,Y and Z. in x_limits, 'X' denotes min and 'Y' denotes max
+	if(data_points.size() == 1) {
 		// For the first point, min and max are the same
-		xLimits = v2s16(point.X, point.X);
-		yLimits = v2s16(point.Y, point.Y);
-		zLimits = v2s16(point.Z, point.Z);
+		x_limits = v2s16(point.X, point.X);
+		y_limits = v2s16(point.Y, point.Y);
+		z_limits = v2s16(point.Z, point.Z);
 	}
 	else {
 		// Regular min/max finding
-		xLimits = v2s16((xLimits.X > point.X)?point.X:xLimits.X, (xLimits.Y < point.X)?point.X:xLimits.Y);
-		yLimits = v2s16((yLimits.X > point.Y)?point.Y:yLimits.X, (yLimits.Y < point.Y)?point.Y:yLimits.Y);
-		zLimits = v2s16((zLimits.X > point.Z)?point.Z:zLimits.X, (zLimits.Y < point.Z)?point.Z:zLimits.Y);
+		x_limits = v2s16((x_limits.X > point.X)?point.X:x_limits.X, (x_limits.Y < point.X)?point.X:x_limits.Y);
+		y_limits = v2s16((y_limits.X > point.Y)?point.Y:y_limits.X, (y_limits.Y < point.Y)?point.Y:y_limits.Y);
+		z_limits = v2s16((z_limits.X > point.Z)?point.Z:z_limits.X, (z_limits.Y < point.Z)?point.Z:z_limits.Y);
 	}
 }
 
-void KMeans::clusterize(s16 numberOfClusters) {
-	dataPointRegistrationFinished = true;
+void KMeans::clusterize(s16 number_of_clusters) {
+	data_point_registration_finished = true;
 
-	if(dataPoints.size() == 0) {
+	if(data_points.size() == 0) {
 		// No points added!
 		return;
 	}
 
 	// Create clusters
 	int i;
-	for(i = 0; i < numberOfClusters; i++) {
-		Cluster *cluster = new Cluster(xLimits, yLimits, zLimits); // Create cluster. The limits are used to randomize its initial centroid
-//		printf("acc: %d %d %d\n", cluster->accumulator.X, cluster->accumulator.Y, cluster->accumulator.Z);
+	for(i = 0; i < number_of_clusters; i++) {
+		Cluster *cluster = new Cluster(x_limits, y_limits, z_limits); // Create cluster. The limits are used to randomize its initial centroid
+//		printf("acc: %f %f %f\n", cluster->accumulator.X, cluster->accumulator.Y, cluster->accumulator.Z);
 		clusters.push_back(cluster);
 	}
 
@@ -83,23 +82,23 @@ void KMeans::clusterize(s16 numberOfClusters) {
 		std::list<ClusterDataPoint *>::iterator i_dataPoint;
 		std::list<Cluster *>::iterator i_cluster;
 
-		for(i_dataPoint = dataPoints.begin(); i_dataPoint != dataPoints.end(); i_dataPoint++) {
+		for(i_dataPoint = data_points.begin(); i_dataPoint != data_points.end(); i_dataPoint++) {
 
 			// Iterate over all clusters to search for the nearest
-			Cluster *nearestCluster = *(clusters.begin());
-			s32 nearestDistance = KMEANS_DISTANCE(nearestCluster->centroid, (*i_dataPoint)->point);
+			Cluster *nearest_cluster = *(clusters.begin());
+			float shortest_distance = KMEANS_DISTANCE(nearest_cluster->centroid, (*i_dataPoint)->point);
 			for(i_cluster = clusters.begin(); i_cluster != clusters.end(); i_cluster++) {
-				s32 distance = KMEANS_DISTANCE((*i_cluster)->centroid, (*i_dataPoint)->point);
-				if(distance < nearestDistance) {
-					nearestDistance = distance;
-					nearestCluster = *i_cluster;
+				float distance = KMEANS_DISTANCE((*i_cluster)->centroid, (*i_dataPoint)->point);
+				if(distance < shortest_distance) {
+					shortest_distance = distance;
+					nearest_cluster = *i_cluster;
 				}
 			}
 			
-			// Now that we have the nearest cluster, add this point to its accumulator, and increment numberOfPoints
-			nearestCluster->accumulator += (*i_dataPoint)->point;
-			nearestCluster->numberOfPoints ++;
-	//		printf("Point: (%d, %d, %d) Nearest cluster centroid: (%d, %d, %d) Acc: (%d, %d, %d)\n", (*i_dataPoint)->point.X, (*i_dataPoint)->point.Y, (*i_dataPoint)->point.Z, nearestCluster->centroid.X, nearestCluster->centroid.Y, nearestCluster->centroid.Z, nearestCluster->accumulator.X, nearestCluster->accumulator.Y, nearestCluster->accumulator.Z );
+			// Now that we have the nearest cluster, add this point to its accumulator, and increment number_of_points
+			nearest_cluster->accumulator += (*i_dataPoint)->point;
+			nearest_cluster->number_of_points ++;
+	//		printf("Point: (%f, %f, %f) Nearest cluster centroid: (%f, %f, %f) Acc: (%f, %f, %f)\n", (*i_dataPoint)->point.X, (*i_dataPoint)->point.Y, (*i_dataPoint)->point.Z, nearest_cluster->centroid.X, nearest_cluster->centroid.Y, nearest_cluster->centroid.Z, nearest_cluster->accumulator.X, nearest_cluster->accumulator.Y, nearest_cluster->accumulator.Z );
 		}
 		
 		// Now that all points have been classified, the new centroids can be calculated for each cluster.
@@ -108,9 +107,9 @@ void KMeans::clusterize(s16 numberOfClusters) {
 		for(i_cluster = clusters.begin(); i_cluster != clusters.end(); i_cluster++) {
 
 			// Checks if the cluster is empty
-			if((*i_cluster)->numberOfPoints > 0) {
-				v3s16 newCenter = v3s16((*i_cluster)->accumulator.X/(*i_cluster)->numberOfPoints, (*i_cluster)->accumulator.Y/(*i_cluster)->numberOfPoints, (*i_cluster)->accumulator.Z/(*i_cluster)->numberOfPoints);
-//				printf("no %d\n", (*i_cluster)->numberOfPoints);
+			if((*i_cluster)->number_of_points > 0) {
+				v3f newCenter = v3f((*i_cluster)->accumulator.X/(*i_cluster)->number_of_points, (*i_cluster)->accumulator.Y/(*i_cluster)->number_of_points, (*i_cluster)->accumulator.Z/(*i_cluster)->number_of_points);
+//				printf("no %d\n", (*i_cluster)->number_of_points);
 				
 				// Check for stability
 				if(newCenter != (*i_cluster)->centroid)
@@ -119,12 +118,12 @@ void KMeans::clusterize(s16 numberOfClusters) {
 				(*i_cluster)->centroid = newCenter;
 				(*i_cluster)->resetAccumulator();
 					
-				printf("acc: %d %d %d new center %d %d %d\n", (*i_cluster)->accumulator.X, (*i_cluster)->accumulator.Y, (*i_cluster)->accumulator.Z, newCenter.X, newCenter.Y, newCenter.Z);
+				printf("acc: %f %f %f new center %f %f %f\n", (*i_cluster)->accumulator.X, (*i_cluster)->accumulator.Y, (*i_cluster)->accumulator.Z, newCenter.X, newCenter.Y, newCenter.Z);
 			}
 			else {
 				printf("Overlap!\n");
 				// If the cluster has no points, its because it is overlapping with another one. Place it somewhere else.
-				(*i_cluster)->randomize(xLimits, yLimits, zLimits);
+				(*i_cluster)->randomize(x_limits, y_limits, z_limits);
 				(*i_cluster)->resetAccumulator();
 			}
 			
@@ -142,97 +141,88 @@ void KMeans::clusterize(s16 numberOfClusters) {
 	std::list<ClusterDataPoint *>::iterator i_dataPoint;
 	std::list<Cluster *>::iterator i_cluster;
 
-	for(i_dataPoint = dataPoints.begin(); i_dataPoint != dataPoints.end(); i_dataPoint++) {
+	for(i_dataPoint = data_points.begin(); i_dataPoint != data_points.end(); i_dataPoint++) {
 
 		// Iterate over all clusters to search for the nearest
-		Cluster *nearestCluster = *(clusters.begin());
-		s32 nearestDistance = KMEANS_DISTANCE(nearestCluster->centroid, (*i_dataPoint)->point);
+		Cluster *nearest_cluster = *(clusters.begin());
+		float shortest_distance = KMEANS_DISTANCE(nearest_cluster->centroid, (*i_dataPoint)->point);
 		for(i_cluster = clusters.begin(); i_cluster != clusters.end(); i_cluster++) {
-			s32 distance = KMEANS_DISTANCE((*i_cluster)->centroid, (*i_dataPoint)->point);
-			if(distance < nearestDistance) {
-				nearestDistance = distance;
-				nearestCluster = *i_cluster;
+			float distance = KMEANS_DISTANCE((*i_cluster)->centroid, (*i_dataPoint)->point);
+			if(distance < shortest_distance) {
+				shortest_distance = distance;
+				nearest_cluster = *i_cluster;
 			}
 		}
 		
 		// Now that we have the nearest cluster, add this point to its list
-		nearestCluster->dataPoints.push_back(*i_dataPoint);
+		nearest_cluster->data_points.push_back(*i_dataPoint);
 	}
 	
-	clusterizationFinished = true;
+	clusterization_finished = true;
 	// Done. Time to sleep...or have breakfast??!	
 }
 
-void * KMeans::getNearestDataPoint(v3s16 point) {
+void * KMeans::getNearestDataPoint(v3f point) {
 	
-	s32 nearestDistance;
+	float shortest_distance;
+	float distance;
 	// Have we clusterized points?
-	if(!clusterizationFinished)
+/*	if(!clusterization_finished)
 		return NULL;
 
 	// Are there any clusters?
 	if(clusters.size() == 0)
 		return NULL;
-
+*/
 	// Search among known clusters for the nearest one
 	std::list<Cluster *>::iterator i_cluster;
-	Cluster *nearestCluster = *(clusters.begin());
-	nearestDistance = KMEANS_DISTANCE(nearestCluster->centroid, point);
+	Cluster *nearest_cluster = *(clusters.begin());
+	shortest_distance = KMEANS_DISTANCE(nearest_cluster->centroid, point);
 	
 	for(i_cluster = clusters.begin(); i_cluster != clusters.end(); i_cluster++) {
-		s32 distance = KMEANS_DISTANCE((*i_cluster)->centroid, point);
-		if(distance < nearestDistance) {
-			nearestDistance = distance;
-			nearestCluster = *i_cluster;
+		distance = KMEANS_DISTANCE((*i_cluster)->centroid, point);
+		if(distance < shortest_distance) {
+			shortest_distance = distance;
+			nearest_cluster = *i_cluster;
 		}
 	}
 
 	// Are there points in the list?
-	if(nearestCluster->dataPoints.size() == 0)
-		return NULL;
+//	if(nearest_cluster->data_points.size() == 0)
+//		return NULL;
 
 	// Now search within the points belonging to that cluster
 	std::list<ClusterDataPoint *>::iterator i_dataPoint;
-	ClusterDataPoint *nearestDataPoint = *(nearestCluster->dataPoints.begin());
-	nearestDistance = KMEANS_DISTANCE(nearestDataPoint->point, point);
+	ClusterDataPoint *nearest_data_point = *(nearest_cluster->data_points.begin());
+	shortest_distance = KMEANS_DISTANCE(nearest_data_point->point, point);
 
-	for(i_dataPoint = nearestCluster->dataPoints.begin(); i_dataPoint != nearestCluster->dataPoints.end(); i_dataPoint++) {
-		s32 distance = KMEANS_DISTANCE((*i_dataPoint)->point, point);
-		if(distance < nearestDistance) {
-			nearestDistance = distance;
-			nearestDataPoint = *i_dataPoint;
+	for(i_dataPoint = nearest_cluster->data_points.begin(); i_dataPoint != nearest_cluster->data_points.end(); i_dataPoint++) {
+		distance = KMEANS_DISTANCE((*i_dataPoint)->point, point);
+		if(distance < shortest_distance) {
+			shortest_distance = distance;
+			nearest_data_point = *i_dataPoint;
 		}
 	}
 
-	printf("Alright! Min Distance: %d\n", nearestDistance);	
-	return nearestDataPoint->data;
+	//printf("Alright! Min Distance: %f\n", shortest_distance);	
+	return nearest_data_point->data;
 
 }
 
-void KMeans::listPoints() {
-	
-	std::list<ClusterDataPoint *>::iterator i_dataPoint;
-	
-	for(i_dataPoint=dataPoints.begin(); i_dataPoint != dataPoints.end(); i_dataPoint++) {
-		printf("point: (%d, %d, %d)\n", (*i_dataPoint)->point.X, (*i_dataPoint)->point.Y, (*i_dataPoint)->point.Z);
-	}
-	printf("X:(%d, %d) Y:(%d, %d) Z:(%d, %d)\n", xLimits.X, xLimits.Y, yLimits.X, yLimits.Y, zLimits.X, zLimits.Y);
-}
-
-Cluster::Cluster(v2s16 xLimits, v2s16 yLimits, v2s16 zLimits) {
+Cluster::Cluster(v2s16 x_limits, v2s16 y_limits, v2s16 z_limits) {
 
 	resetAccumulator();
 
 	// To initialize a cluster, two methods exist: place the centroid over a random point, or over a random (bounded) location. The later is used.
-	randomize(xLimits, yLimits, zLimits);
-	printf("Cluster added. Centroid: (%d, %d, %d) (%d, %d, %d)\n", centroid.X, centroid.Y, centroid.Z, accumulator.X, accumulator.Y, accumulator.Z);
+	randomize(x_limits, y_limits, z_limits);
+	printf("Cluster added. Centroid: (%f, %f, %f) (%f, %f, %f)\n", centroid.X, centroid.Y, centroid.Z, accumulator.X, accumulator.Y, accumulator.Z);
 }
 
 void Cluster::resetAccumulator() {
-	accumulator = v3s16(0, 0, 0);
-	numberOfPoints = 0;
+	accumulator = v3f(0, 0, 0);
+	number_of_points = 0;
 }
 
-void Cluster::randomize(v2s16 xLimits, v2s16 yLimits, v2s16 zLimits) {
-	centroid = v3s16(myrand_range(xLimits.X, xLimits.Y), myrand_range(yLimits.X, yLimits.Y), myrand_range(zLimits.X, zLimits.Y));
+void Cluster::randomize(v2s16 x_limits, v2s16 y_limits, v2s16 z_limits) {
+	centroid = v3f(myrand_range(x_limits.X, x_limits.Y), myrand_range(y_limits.X, y_limits.Y), myrand_range(z_limits.X, z_limits.Y));
 }

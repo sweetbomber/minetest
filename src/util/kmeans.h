@@ -24,23 +24,23 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #define KMEANS_DISTANCE(A, B) (((A).X - (B).X)*((A).X - (B).X) + ((A).Y - (B).Y)*((A).Y - (B).Y) + ((A).Z - (B).Z)*((A).Z - (B).Z))
 
 class ClusterDataPoint{
-  public:
-  void *data;
-  v3s16 point;
+	public:
+	void *data;
+	v3f point;
 };
 
 class Cluster {
 
 public:
-	v3s16 centroid;           // The centroid of the cluster (center of mass of all points)
-  v3s16 accumulator;        // Accumulator used to update centroid. Centroid = accumulator/NumberOfPoints
-  s32 numberOfPoints;
-  std::list<ClusterDataPoint *> dataPoints; // Point data: Includes Vector + pointer to data
+	v3f centroid;           // The centroid of the cluster (center of mass of all points)
+	v3f accumulator;        // Accumulator used to update centroid. Centroid = accumulator/NumberOfPoints
+	s32 number_of_points;
+	std::list<ClusterDataPoint *> data_points; // Point data: Includes Vector + pointer to data
 
-	Cluster(v2s16 xLimits, v2s16 yLimits, v2s16 zLimits);
+	Cluster(v2s16 x_limits, v2s16 y_limits, v2s16 z_limits);
 	~Cluster();
-  void resetAccumulator();
-  void randomize(v2s16 xLimits, v2s16 yLimits, v2s16 zLimits);
+	void resetAccumulator();
+	void randomize(v2s16 x_limits, v2s16 y_limits, v2s16 z_limits);
 };
 
 class KMeans {
@@ -49,20 +49,19 @@ public:
 	KMeans();
 	~KMeans();
 
-  void addDataPoint(void *data, v3s16 point);         // Add a new data Point
-  void clusterize(s16 numberOfClusters);                                  // Calculate clusters' centroids
-//  Cluster *classifyPoint(v3s16 point);                // Return the closest cluster to the given point
-  void *getNearestDataPoint(v3s16 point); // Return the closest data from point
+	void addDataPoint(void *data, v3f point);         // Add a new data Point
+	void clusterize(s16 number_of_clusters);                                  // Calculate clusters' centroids
+	void *getNearestDataPoint(v3f point); // Return the closest data from point
 
-  void listPoints();
+
 private:
-	bool dataPointRegistrationFinished;
-	bool clusterizationFinished;
+	bool data_point_registration_finished;
+	bool clusterization_finished;
 	std::list<Cluster *> clusters;             // Forward list of all clusters
-  std::list<ClusterDataPoint *> dataPoints;  // All point data
-  v2s16 xLimits;                             // Min/Max of x, y, z.   in xLimits, 'X' denotes min and 'Y' denotes max
-  v2s16 yLimits;
-  v2s16 zLimits;
+	std::list<ClusterDataPoint *> data_points;  // All point data
+	v2s16 x_limits;                             // Min/Max of x, y, z.   in x_limits, 'X' denotes min and 'Y' denotes max
+	v2s16 y_limits;
+	v2s16 z_limits;
 
 };
 

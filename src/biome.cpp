@@ -22,6 +22,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "map.h" //for ManualMapVoxelManipulator
 #include "log.h"
 #include "main.h"
+#include "util/timetaker.h"
 
 
 NoiseParams nparams_biome_def_heat =
@@ -90,10 +91,21 @@ void BiomeDefManager::calcBiomes(BiomeNoiseInput *input, u8 *biomeid_map) {
 		for (int x = 0; x != input->mapsize.X; x++, i++) {
 			float heat     = (input->heat_map[i] + 1) * 50;
 			float humidity = (input->humidity_map[i] + 1) * 50;
+//printf("Current Height: %d\n", input->height_map[i]);
+			
+			u32 counted_time = 0;
+			TimeTaker local_timer("getBiome", &counted_time, PRECISION_NANO);			
 			biomeid_map[i] = getBiome(heat, humidity, input->height_map[i])->id;
-			printf("Id1: %d  ", biomeid_map[i]);
-			biomeid_map[i] = ((Biome *)(kMeans->getNearestDataPoint(v3s16(heat, humidity, input->height_map[i]))))->id;
-			printf("Id2: %d\n", biomeid_map[i]);
+			counted_time = local_timer.stop(true);
+			printf("Original getBiome: %d\n", counted_time);
+
+			//printf("Id1: %d  ", biomeid_map[i]);
+			counted_time = 0;
+			TimeTaker local_timer2("kMeans", &counted_time, PRECISION_NANO);
+			biomeid_map[i] = ((Biome *)(kMeans->getNearestDataPoint(v3f(heat, humidity, input->height_map[i]))))->id;
+			counted_time = local_timer2.stop(true);
+			printf("kMeans: %d\n", counted_time);
+			//printf("Id2: %d\n", biomeid_map[i]);
 		}
 	}
 }
@@ -127,7 +139,7 @@ void BiomeDefManager::resolveNodeNames(INodeDefManager *ndef) {
 			}
 		}
 	}
-	kMeans->clusterize((biomes.size() + 15)/16); // The sum is used to perform ceil rounding with integer arithmetic
+	kMeans->clusterize((biomes.size() + 2)/3 + biomes.size()/30); // The sum is used to perform ceil rounding with integer arithmetic
 }
 
 
@@ -147,7 +159,7 @@ void BiomeDefManager::addBiome(Biome *b) {
 
 	b->id = (u8)nbiomes;
 	biomes.push_back(b);
-	kMeans->addDataPoint(b, v3s16(b->heat_point, b->humidity_point, 0));
+	kMeans->addDataPoint(b, v3f(b->heat_point, b->humidity_point, b->height_point));
 	verbosestream << "BiomeDefManager: added biome " << b->name << std::endl;
 }
 
@@ -171,6 +183,6 @@ Biome *BiomeDefManager::getBiome(float heat, float humidity, s16 y) {
 		}
 	}
 	
-	printf("min distance: %f\n", dist_min);
+//	printf("min distance: %f\n", dist_min);
 	return biome_closest ? biome_closest : biomes[0];
 }

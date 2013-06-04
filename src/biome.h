@@ -55,7 +55,7 @@ public:
 	content_t c_filler;
 	s16 filler_height;
 	
-	s16 height_point;
+	float height_point;
 	float heat_point;
 	float humidity_point;
 };
