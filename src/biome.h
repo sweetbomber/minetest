@@ -26,6 +26,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "mapnode.h"
 #include "noise.h"
 #include "mapgen.h"
+#include "util/kmeans.h"
 
 enum BiomeTerrainType
 {
@@ -54,8 +55,7 @@ public:
 	content_t c_filler;
 	s16 filler_height;
 	
-	s16 height_min;
-	s16 height_max;
+	s16 height_point;
 	float heat_point;
 	float humidity_point;
 };
@@ -70,7 +70,7 @@ struct BiomeNoiseInput {
 class BiomeDefManager {
 public:
 	std::vector<Biome *> biomes;
-
+	KMeans *kMeans;
 	bool biome_registration_finished;
 	NoiseParams *np_heat;
 	NoiseParams *np_humidity;

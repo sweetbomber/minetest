@@ -37,7 +37,7 @@ BiomeDefManager::BiomeDefManager() {
 
 	// Create default biome to be used in case none exist
 	Biome *b = new Biome;
-	
+  kMeans = new KMeans;
 	b->id    = 0;
 	b->name  = "Default";
 	b->flags = 0;
@@ -47,8 +47,7 @@ BiomeDefManager::BiomeDefManager() {
 	b->c_filler      = b->c_top;
 	b->filler_height = MAP_GENERATION_LIMIT;
 
-	b->height_min      = -MAP_GENERATION_LIMIT;
-	b->height_max      = MAP_GENERATION_LIMIT;
+	b->height_point    = 0;
 	b->heat_point      = 0.0;
 	b->humidity_point  = 0.0;
 
@@ -86,11 +85,15 @@ Biome *BiomeDefManager::createBiome(BiomeTerrainType btt) {
 // just a PoC, obviously needs optimization later on (precalculate this)
 void BiomeDefManager::calcBiomes(BiomeNoiseInput *input, u8 *biomeid_map) {
 	int i = 0;
+	printf("Calc biome...\n");
 	for (int y = 0; y != input->mapsize.Y; y++) {
 		for (int x = 0; x != input->mapsize.X; x++, i++) {
 			float heat     = (input->heat_map[i] + 1) * 50;
 			float humidity = (input->humidity_map[i] + 1) * 50;
 			biomeid_map[i] = getBiome(heat, humidity, input->height_map[i])->id;
+			printf("Id1: %d  ", biomeid_map[i]);
+			biomeid_map[i] = ((Biome *)(kMeans->getNearestDataPoint(v3s16(heat, humidity, input->height_map[i]))))->id;
+			printf("Id2: %d\n", biomeid_map[i]);
 		}
 	}
 }
@@ -124,6 +127,7 @@ void BiomeDefManager::resolveNodeNames(INodeDefManager *ndef) {
 			}
 		}
 	}
+	kMeans->clusterize((biomes.size() + 15)/16); // The sum is used to perform ceil rounding with integer arithmetic
 }
 
 
@@ -143,6 +147,7 @@ void BiomeDefManager::addBiome(Biome *b) {
 
 	b->id = (u8)nbiomes;
 	biomes.push_back(b);
+	kMeans->addDataPoint(b, v3s16(b->heat_point, b->humidity_point, 0));
 	verbosestream << "BiomeDefManager: added biome " << b->name << std::endl;
 }
 
@@ -153,18 +158,19 @@ Biome *BiomeDefManager::getBiome(float heat, float humidity, s16 y) {
 
 	for (size_t i = 1; i < biomes.size(); i++) {
 		b = biomes[i];
-		if (y > b->height_max || y < b->height_min)
-			continue;
 
 		float d_heat      = heat     - b->heat_point;
 		float d_humidity  = humidity - b->humidity_point;
+		float d_height		= y				 - b->height_point;
 		float dist = (d_heat * d_heat) +
-					 (d_humidity * d_humidity);
+					 (d_humidity * d_humidity) +
+					 (d_height * d_height);
 		if (dist < dist_min) {
 			dist_min = dist;
 			biome_closest = b;
 		}
 	}
 	
+	printf("min distance: %f\n", dist_min);
 	return biome_closest ? biome_closest : biomes[0];
 }

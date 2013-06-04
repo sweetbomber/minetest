@@ -170,8 +170,7 @@ int ModApiBasic::l_register_biome(lua_State *L)
 	b->top_depth = getintfield_default(L, index, "top_depth", 0);
 	b->filler_nodename = getstringfield_default(L, index, "filler_node", "");
 	b->filler_height = getintfield_default(L, index, "filler_height", 0);
-	b->height_min = getintfield_default(L, index, "height_min", 0);
-	b->height_max = getintfield_default(L, index, "height_max", 0);
+	b->height_point = getintfield_default(L, index, "height_point", 0);
 	b->heat_point = getfloatfield_default(L, index, "heat_point", 0.);
 	b->humidity_point = getfloatfield_default(L, index, "humidity_point", 0.);
 
