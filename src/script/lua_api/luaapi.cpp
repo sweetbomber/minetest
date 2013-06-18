@@ -62,6 +62,7 @@ bool ModApiBasic::Initialize(lua_State* L,int top) {
 	retval &= API_FCT(register_structure);
 	retval &= API_FCT(register_structure_section);
 	retval &= API_FCT(register_structure_palette);
+	retval &= API_FCT(assign_section_to_structure);
 
 	retval &= API_FCT(setting_set);
 	retval &= API_FCT(setting_get);
@@ -192,8 +193,7 @@ int ModApiBasic::l_register_biome(lua_State *L)
 // register_structure()
 int ModApiBasic::l_register_structure(lua_State *L)
 {
-	int index = 1;
-	luaL_checktype(L, index, LUA_TTABLE);
+	luaL_checktype(L, 1, LUA_TTABLE);
 
 	StructureDefManager *smgr = getServer(L)->getEmergeManager()->structdef;
 	if (!smgr) {
@@ -201,17 +201,18 @@ int ModApiBasic::l_register_structure(lua_State *L)
 		return 0;
 	}
 
-	Structure *s = smgr->registerStructure(getstringfield_default(L, index, "name", "defaultStructure"));
-
-	verbosestream << "Registered structure: " << s->name << std::endl;
+	Structure *s = smgr->registerStructure(getstringfield_default(L, 1, "name", "defaultStructure"));
+	if(s)
+		verbosestream << "Registered structure: " << s->name << std::endl;
 
 	return 0;
 }
 
 // register_structure_section()
 int ModApiBasic::l_register_structure_section(lua_State *L) {
-	int index = 1;
-	luaL_checktype(L, index, LUA_TTABLE);
+	std::string name;
+
+	luaL_checktype(L, 1, LUA_TTABLE);
 
 	StructureDefManager *smgr = getServer(L)->getEmergeManager()->structdef;
 	if (!smgr) {
@@ -219,18 +220,20 @@ int ModApiBasic::l_register_structure_section(lua_State *L) {
 		return 0;
 	}
 
-	StructureSection *s = smgr->registerSection(
-					getstringfield_default(L, index, "section_name","defaultSection"),
-					getstringfield_default(L, index, "structure_name", "defaultStructure"));
+	name = getstringfield_default(L, 1, "name", "defaultSection");
+	StructureSection *s = smgr->registerSection(name);
 
-	return 0;
+	if(!s) {
+		errorstream << "Unable to register section " << name << std::endl;
+		return 0;
+	}
+
 	lua_getfield(L, index, "volume");
-	s->volume = read_v3s16(L, -1);
+	s->setVolume(read_v3s16(L, -1));
 	lua_pop(L, 1);
 
 	std::string file_name = getstringfield_default(L, index, "file", "");
 	std::ifstream file(file_name.c_str(), std::ios::binary);
-
 
 	if(!file.is_open()) {
 		errorstream << "Unable to open file \"" << file_name << "\" from section \""
@@ -255,9 +258,26 @@ int ModApiBasic::l_register_structure_section(lua_State *L) {
 
 // register_structure_palette()
 int ModApiBasic::l_register_structure_palette(lua_State *L) {
+
+	StructureDefManager *smgr = getServer(L)->getEmergeManager()->structdef;
 	smgr->registerPalette(
-					getstringfield_default(L, index, "palette_name","defaultSection"),
-					getstringfield_default(L, index, "structure_name", "defaultStructure"));
+					getstringfield_default(L, 1, "palette_name","defaultSection"),
+					getstringfield_default(L, 1, "structure_name", "defaultStructure"));
+	return 0;
+}
+
+int ModApiBasic::l_assign_section_to_structure(lua_State *L) {
+	luaL_checktype(L, 1, LUA_TTABLE);
+
+	StructureDefManager *smgr = getServer(L)->getEmergeManager()->structdef;
+	if (!smgr) {
+		verbosestream << "register_structure: StructureDefManager not active" << std::endl;
+		return 0;
+	}
+
+	smgr->assignSectionToStructure(
+					getstringfield_default(L, 1, "structure_name","defaultStructure"),
+					getstringfield_default(L, 1, "section_name", "defaultSection"));
 	return 0;
 }
 

@@ -69,12 +69,14 @@ class Structure;
  */
 class StructureSection {
 public:
+	StructureSection(void);
+
 	void addPalette(std::string name);
 	bool loadFromFile(std::ifstream file);
 	void registerNode(v3s16 pos, std::string name, u8 param1 = 0, u8 param2 = 0);
 	void setVolume(v3s16 vol);
 	v3s16 getVolume();
-	void finishRegistration();
+	void finishRegisteringProcess();
 
 	std::string name;
 	Structure *structure;
@@ -91,7 +93,9 @@ private:
  */
 class Structure {
 public:
-	std::string name;
+
+	Structure();
+
 	void addSection(std::string name, StructureSection *section);
 	void addPalette(std::string palette_name, StructurePalette *palette);
 private:
@@ -114,9 +118,11 @@ public:
 	StructureDefManager();
 	~StructureDefManager();
 
-	Structure *registerStructure(Structure *structure);
-	StructureSection *registerSection(StructureSection *section);
+	Structure *registerStructure(std::string structure_name);
+	StructureSection *registerSection(std::string section_name);
 	void registerPalette(std::string structure_name, std::string palette_name);
+	void assignSectionToStructure(std::string structure_name,
+								  std::string section_name);
 	void finishRegisteringProcess(INodeDefManager *ndef);
 
 	/* Obtains the structure that best matches the given conditions */
@@ -125,6 +131,7 @@ public:
 private:
 	std::list<Structure *> structures;
 	std::list<StructureSection *> sections;
+	std::list<StructurePalette *> palettes;
 	std::map<std::string, Structure *> structures_byname;
 	std::map<std::string, StructureSection *> sections_byname;
 	std::map<std::string, StructurePalette *> palettes_byname;

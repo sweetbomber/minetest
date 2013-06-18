@@ -60,6 +60,8 @@ private:
 	// register_structure_palette()
 	static int l_register_structure_palette(lua_State *L);
 
+	static int l_assign_section_to_structure(lua_State *L);
+
 	// setting_set(name, value)
 	static int l_setting_set(lua_State *L);
 

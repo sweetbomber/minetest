@@ -43,7 +43,7 @@ StructurePalette::~StructurePalette() {
 /* Searches for a texture. If it does not exist, add it to the list
   and return its ID. Otherwise, just return the id */
 u16 StructurePalette::addAndReturnId(std::string name) {
-	std::map<std::string, u16> iterator it;
+	std::map<std::string, u16>::iterator it;
 	it = id_list.find(name);
 	if(it == id_list.end()) {
 		id_list[name] = number_of_elements;
@@ -62,21 +62,20 @@ void StructurePalette::translateData(MapNode *output, MapNode *input, u32 n) {
 }
 
 
-StructureSection::StructureSection() {
+StructureSection::StructureSection(void) {
 	volume = v3s16(0, 0, 0);
 	finished_registering_process = false;
 }
 
-bool StructureSection::loadFromFile(std:ifstream file)
-{
+bool StructureSection::loadFromFile(std::ifstream file) {
 //	registerNode(v3s16(0,0,0), "default:stonebrick", 0, 0);
 	return true;
 }
 void StructureSection::registerNode(v3s16 pos, std::string name,
-									u8 param1 = 0, u8 param2 = 0) {
+									u8 param1, u8 param2) {
 	if(finished_registering_process)
 		return;
-
+/*
 	if((pos.X >= 0 && pos.X < volume.X) &&
 	   (pos.Y >= 0 && pos.X < volume.Y) &&
 	   (pos.Z >= 0 && pos.Z < volume.Z)) {
@@ -89,6 +88,7 @@ void StructureSection::registerNode(v3s16 pos, std::string name,
 		errorstream << "Tried to register section node outside volume. Ignoring..."
 					<< std::endl;
 	}
+	**/
 }
 
 void StructureSection::setVolume(v3s16 vol) {
@@ -103,8 +103,9 @@ void StructureSection::setVolume(v3s16 vol) {
 		return;
 	}
 
-	node_data = new MapNode(CONTENT_IGNORE, 0, 0) [vol.X * vol.Y * vol.Z];
+//	node_data = new MapNode(CONTENT_IGNORE, 0, 0) [vol.X * vol.Y * vol.Z];
 	volume = vol;
+	printf("set volume\n");
 }
 
 v3s16 StructureSection::getVolume() {
@@ -115,32 +116,30 @@ void StructureSection::finishRegisteringProcess() {
 	finished_registering_process = true;
 }
 
-
-
-Structure::Structure(std::string name) {
+Structure::Structure() {
 }
 
 void Structure::addSection(std::string name, StructureSection *section) {
-	std::map<std::string, StructureSection *> iterator section_it;
-	section_it = sections_byname.find(name);
-
-	/* If this fails, addSection was called directly.
-	 * Registration of new sections must go trough StructDefMangr
-	 */
-	assert(section_it == sections_byname.end());
-
-	sections_byname[name] = section;
-	sections.push_back(section);
+	/* Only adds if the section is new */
+	if(sections_byname.find(name) == sections_byname.end()) {
+		sections_byname[name] = section;
+		sections.push_back(section);
+		printf("Added section %s\n", name.c_str());
+	}
+	else {
+		errorstream << "Tried to add section " << name << " twice!"
+					<< std::endl;
+	}
 }
 
 void Structure::addPalette(std::string name, StructurePalette *palette) {
-	std::map<std::string, StructurePalette *> iterator palette_it;
+	std::map<std::string, StructurePalette *>::iterator palette_it;
 	palette_it = palettes_byname.find(name);
 
 	/* If this fails, addPalette was called directly.
 	 * Registration of new palettes must go trough StructDefMangr
 	 */
-	assert(section_it == sections_byname.end());
+	assert(palette_it == palettes_byname.end());
 
 	palettes_byname[name] = palette;
 	palettes.push_back(palette);
@@ -158,17 +157,17 @@ StructureDefManager::~StructureDefManager() {
 }
 
 Structure *StructureDefManager::registerStructure(std::string structure_name) {
-	std::map<std::string, Structure *> iterator structure_it;
+	std::map<std::string, Structure *>::iterator structure_it;
 
 	structure_it = structures_byname.find(structure_name);
 	if(structure_it != structures_byname.end())
 	{
-		errorstream << "Structure already registered: " << structure_name <<
+		errorstream << "Structure already registered: " << structure_name
 					<< std::endl;
 		return NULL;
 	}
 
-	Structure structure = new Structure(structure_name);
+	Structure *structure = new Structure();
 	structures_byname[structure_name] = structure;
 	structures.push_back(structure);
 	printf("Structure registered! %s\n", structure_name.c_str());
@@ -176,37 +175,52 @@ Structure *StructureDefManager::registerStructure(std::string structure_name) {
 }
 
 /*
- * Assigns a section to a structure. If it does not exist, creates it.
+ * Register a new section.
  */
-StructureSection *StructureDefManager::registerSection(std::string structure_name,
-										  std::string section_name) {
+StructureSection *StructureDefManager::registerSection(std::string section_name) {
 
-	std::map<std::string, Structure *> iterator structure_it;
-	std::map<std::string, StructureSection *> iterator section_it;
-
-	structure_it = structures_byname.find(structure_name);
-	if(structure_it == structures_byname.end())
-	{
-		errorstream << "Tried to add a section to a non-existing structure!"
-					<< std::endl;
-		return NULL;
-	}
+	std::map<std::string, StructureSection *>::iterator section_it;
 
 	section_it = sections_byname.find(section_name);
-	if(section_it != sections_byname.end())
-	{
-		errorstream << "Section already exists! " << section_name <<
+	if(section_it != sections_byname.end()) {
+		errorstream << "Section already registered: " << section_name
 					<< std::endl;
 		return NULL;
 	}
 
-	StructureSection section = new StructureSection(section_name);
+	StructureSection *section = new StructureSection();
 	sections_byname[section_name] = section;
 	sections.push_back(section);
 	section_it = sections_byname.find(section_name);
+	printf("Registered section %s\n", section_name.c_str());
 
-	structure_it->addSection(section_name, *section_it);
-	return section;
+	return section_it->second;
+}
+
+void StructureDefManager::assignSectionToStructure(std::string structure_name,
+										  std::string section_name) {
+
+	std::map<std::string, Structure *>::iterator structure_it;
+	std::map<std::string, StructureSection *>::iterator section_it;
+
+	structure_it = structures_byname.find(structure_name);
+	if(structure_it == structures_byname.end()) {
+		errorstream << "Tried to assign a section to a non-existing structure!"
+					<< "Section: " << section_name << " Structure: "
+					<< structure_name << std::endl;
+		return;
+	}
+
+	section_it = sections_byname.find(section_name);
+	if(section_it == sections_byname.end())
+	{
+		errorstream << "Tried to assign a not-existing section to a structure!"
+					<< "Section: " << section_name << " Structure: "
+					<< structure_name << std::endl;
+		return;
+	}
+	structure_it->second->addSection(section_name, section_it->second);
+	return;
 }
 
 /*
@@ -214,8 +228,8 @@ StructureSection *StructureDefManager::registerSection(std::string structure_nam
  */
 void StructureDefManager::registerPalette(std::string structure_name,
 										  std::string palette_name) {
-	std::map<std::string, Structure *> iterator structure_it;
-	std::map<std::string, StructurePalette *> iterator palette_it;
+	std::map<std::string, Structure *>::iterator structure_it;
+	std::map<std::string, StructurePalette *>::iterator palette_it;
 
 	structure_it = structures_byname.find(structure_name);
 	if(structure_it == structures_byname.end())
@@ -228,27 +242,17 @@ void StructureDefManager::registerPalette(std::string structure_name,
 	palette_it = palettes_byname.find(palette_name);
 	if(palette_it == palettes_byname.end())
 	{
-		StructurePalette palette = new StructurePalette(palette_name);
+		StructurePalette *palette = new StructurePalette();
 		palettes_byname[palette_name] = palette;
 		palettes.push_back(palette);
 		palette_it = palettes_byname.find(palette_name);
 	}
 
-	structure_it->addPalette(palette_name, *palette_it);
+	structure_it->second->addPalette(palette_name, palette_it->second);
 }
 
 void StructureDefManager::finishRegisteringProcess(INodeDefManager *ndef) {
 	printf("Finish registering structures\n");
-	if(structures.size()) {
-		printf("Structure list:\n");
-		std::list<Structure *>::iterator i;
-		for(i = structures.begin(); i != structures.end(); i++) {
-			printf("   %s\n", (*i)->name.c_str());
-		}
-	}
-	else {
-		printf("No structures added\n");
-	}
 }
 
 /* Obtains the structure that best matches the given conditions */
