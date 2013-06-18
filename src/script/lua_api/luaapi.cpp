@@ -33,6 +33,7 @@ extern "C" {
 #include "rollback.h"
 #include "log.h"
 #include "emerge.h"
+#include "structures.h"
 #include "main.h"  //required for g_settings
 
 struct EnumString ModApiBasic::es_OreType[] =
@@ -57,6 +58,10 @@ bool ModApiBasic::Initialize(lua_State* L,int top) {
 	retval &= API_FCT(get_server_status);
 
 	retval &= API_FCT(register_biome);
+
+	retval &= API_FCT(register_structure);
+	retval &= API_FCT(register_structure_section);
+	retval &= API_FCT(register_structure_palette);
 
 	retval &= API_FCT(setting_set);
 	retval &= API_FCT(setting_get);
@@ -184,7 +189,77 @@ int ModApiBasic::l_register_biome(lua_State *L)
 	return 0;
 }
 
+// register_structure()
+int ModApiBasic::l_register_structure(lua_State *L)
+{
+	int index = 1;
+	luaL_checktype(L, index, LUA_TTABLE);
 
+	StructureDefManager *smgr = getServer(L)->getEmergeManager()->structdef;
+	if (!smgr) {
+		verbosestream << "register_structure: StructureDefManager not active" << std::endl;
+		return 0;
+	}
+
+	Structure *s = smgr->registerStructure(getstringfield_default(L, index, "name", "defaultStructure"));
+
+	verbosestream << "Registered structure: " << s->name << std::endl;
+
+	return 0;
+}
+
+// register_structure_section()
+int ModApiBasic::l_register_structure_section(lua_State *L) {
+	int index = 1;
+	luaL_checktype(L, index, LUA_TTABLE);
+
+	StructureDefManager *smgr = getServer(L)->getEmergeManager()->structdef;
+	if (!smgr) {
+		verbosestream << "register_structure: StructureDefManager not active" << std::endl;
+		return 0;
+	}
+
+	StructureSection *s = smgr->registerSection(
+					getstringfield_default(L, index, "section_name","defaultSection"),
+					getstringfield_default(L, index, "structure_name", "defaultStructure"));
+
+	return 0;
+	lua_getfield(L, index, "volume");
+	s->volume = read_v3s16(L, -1);
+	lua_pop(L, 1);
+
+	std::string file_name = getstringfield_default(L, index, "file", "");
+	std::ifstream file(file_name.c_str(), std::ios::binary);
+
+
+	if(!file.is_open()) {
+		errorstream << "Unable to open file \"" << file_name << "\" from section \""
+					<< s->name << "\"" << std::endl;
+		delete s;
+		return 0;
+	}
+
+	if(!s->loadFromFile(file)) {
+		errorstream << "Invalid format in file \"" << file_name << "\" from section \""
+					<< s->name << "\"" << std::endl;
+		delete s;
+		return 0;
+	}
+
+	file.close();
+	printf("Volume: (%d, %d, %d)\n", s->volume.X, s->volume.Y, s->volume.Z);
+	verbosestream << "register_section: " << s->name << std::endl;
+
+	return 0;
+}
+
+// register_structure_palette()
+int ModApiBasic::l_register_structure_palette(lua_State *L) {
+	smgr->registerPalette(
+					getstringfield_default(L, index, "palette_name","defaultSection"),
+					getstringfield_default(L, index, "structure_name", "defaultStructure"));
+	return 0;
+}
 
 // setting_set(name, value)
 int ModApiBasic::l_setting_set(lua_State *L)

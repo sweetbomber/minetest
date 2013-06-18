@@ -38,6 +38,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "nodedef.h"
 #include "biome.h"
 #include "emerge.h"
+#include "structures.h"
 #include "mapgen_v6.h"
 #include "mapgen_v7.h"
 #include "mapgen_indev.h"
@@ -55,6 +56,7 @@ EmergeManager::EmergeManager(IGameDef *gamedef) {
 
 	this->ndef     = gamedef->getNodeDefManager();
 	this->biomedef = new BiomeDefManager();
+	this->structdef = new StructureDefManager();
 	this->params   = NULL;
 	
 	mapgen_debug_info = g_settings->getBool("enable_mapgen_debug_info");
@@ -120,6 +122,8 @@ void EmergeManager::initMapgens(MapgenParams *mgparams) {
 	
 	biomedef->resolveNodeNames(ndef);
 	
+	structdef->finishRegisteringProcess(ndef);
+
 	this->params = mgparams;
 	for (unsigned int i = 0; i != emergethread.size(); i++) {
 		mg = createMapgen(params->mg_name, 0, params);

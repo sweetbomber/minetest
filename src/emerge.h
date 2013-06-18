@@ -35,6 +35,7 @@ struct MapgenParams;
 struct MapgenFactory;
 class Biome;
 class BiomeDefManager;
+class StructureDefManager;
 class EmergeThread;
 class ManualMapVoxelManipulator;
 
@@ -86,6 +87,7 @@ public:
 
 	//Mapgen-related structures
 	BiomeDefManager *biomedef;
+	StructureDefManager *structdef;
 	std::vector<Ore *> ores;
 
 	EmergeManager(IGameDef *gamedef);

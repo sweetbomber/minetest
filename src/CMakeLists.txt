@@ -269,6 +269,7 @@ set(common_SRCS
 	clientserver.cpp
 	staticobject.cpp
 	serverlist.cpp
+	structures.cpp
 	pathfinder.cpp
 	${SCRIPT_SRCS}
 	${UTIL_SRCS}

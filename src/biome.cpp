@@ -102,6 +102,7 @@ void BiomeDefManager::resolveNodeNames(INodeDefManager *ndef) {
 	biome_registration_finished = true;
 	
 	for (size_t i = 0; i != biomes.size(); i++) {
+		printf("Registering biome No. %d\n", i);
 		b = biomes[i];
 		
 		if (b->c_top == CONTENT_IGNORE) {

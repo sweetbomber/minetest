@@ -21,6 +21,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #define MAPGEN_V7_HEADER
 
 #include "mapgen.h"
+#include "structures.h"
 
 extern NoiseParams nparams_v7_def_terrain_base;
 extern NoiseParams nparams_v7_def_terrain_alt;
@@ -56,6 +57,7 @@ class MapgenV7 : public Mapgen {
 public:
 	EmergeManager *emerge;
 	BiomeDefManager *bmgr;
+	StructureDefManager *smgr;
 
 	int ystride;
 	v3s16 csize;
@@ -107,7 +109,7 @@ public:
 	
 	void generateTerrain();
 	void carveRidges();
-	//void carveRivers(); //experimental
+	void generateStructures();
 	
 	void testBiomes();
 	void addTopNodes();

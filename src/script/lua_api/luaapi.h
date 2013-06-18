@@ -51,6 +51,15 @@ private:
 	// register_biome({lots of stuff})
 	static int l_register_biome(lua_State *L);
 
+	// register_structure()
+	static int l_register_structure(lua_State *L);
+
+	// register_section()
+	static int l_register_structure_section(lua_State *L);
+
+	// register_structure_palette()
+	static int l_register_structure_palette(lua_State *L);
+
 	// setting_set(name, value)
 	static int l_setting_set(lua_State *L);
 

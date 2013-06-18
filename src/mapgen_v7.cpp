@@ -74,6 +74,9 @@ MapgenV7::MapgenV7(int mapgenid, MapgenV7Params *params, EmergeManager *emerge) 
 	this->emerge = emerge;
 	this->bmgr   = emerge->biomedef;
 
+//	emerge->structdef = new StructureDefManager;
+	this->smgr   = emerge->structdef;
+
 	this->seed     = (int)params->seed;
 	this->water_level = params->water_level;
 	this->flags   = params->flags;
@@ -94,7 +97,9 @@ MapgenV7::MapgenV7(int mapgenid, MapgenV7Params *params, EmergeManager *emerge) 
 	
 	// Biome noise
 	noise_heat     = new Noise(bmgr->np_heat,     seed, csize.X, csize.Z);
-	noise_humidity = new Noise(bmgr->np_humidity, seed, csize.X, csize.Z);	
+	noise_humidity = new Noise(bmgr->np_humidity, seed, csize.X, csize.Z);
+
+
 }
 
 
@@ -111,6 +116,8 @@ MapgenV7::~MapgenV7() {
 	delete[] ridge_heightmap;
 	delete[] heightmap;
 	delete[] biomemap;
+
+	delete smgr;
 }
 
 
@@ -184,18 +191,15 @@ void MapgenV7::makeChunk(BlockMakeData *data) {
 	carveRidges();
 	
 	generateCaves(stone_surface_max_y);
+
 	addTopNodes();
-
-	if (flags & MG_DUNGEONS) {
-		DungeonGen dgen(ndef, data->seed, water_level);
-		dgen.generate(vm, blockseed, full_node_min, full_node_max);
-	}
-
 	for (size_t i = 0; i != emerge->ores.size(); i++) {
 		Ore *ore = emerge->ores[i];
 		ore->placeOre(this, blockseed + i, node_min, node_max);
 	}
-	
+
+	generateStructures();
+
 	//printf("makeChunk: %dms\n", t.stop());
 	
 	updateLiquid(&data->transforming_liquid, full_node_min, full_node_max);
@@ -497,16 +501,65 @@ void MapgenV7::addTopNodes() {
 	}
 }
 
+/*
+ * Used for structure placing.
+ * This class is used to decide whether to place or not,
+ * where to place, and carries out the placement procedure.
+ */
+void MapgenV7::generateStructures() {
+	MapNode nodeTypes[10];
+	v3s16 em = vm->m_area.getExtent();
+	nodeTypes[0] = MapNode(CONTENT_IGNORE);
+	nodeTypes[1] = MapNode(CONTENT_AIR);
+	nodeTypes[2] = MapNode(ndef->getId("mapgen_stone"));
+
+	v3s16 structureSize(8,8,8);
+	u8 structure[8*8*8];
+
+
+	memset(structure, 0, 8*8*8);
+	memset(structure, 2, 64);
+
+
+
+	v3s16 structureOrigin(0, 0, 0);
+
+	for(structureOrigin.X = node_min.X; structureOrigin.X < node_max.X; structureOrigin.X+=16)
+		for(structureOrigin.Z = node_min.Z; structureOrigin.Z < node_max.Z; structureOrigin.Z+=16) {
+
+			structureOrigin.Y = baseTerrainLevelAtPoint(structureOrigin.X, structureOrigin.Z) + 2;
+
+			if((structureOrigin.Y+8 > node_max.Y) || (structureOrigin.Y < node_min.Y))
+				return;
+			u32 index = 0, i;
+			i = vm->m_area.index(structureOrigin.X, structureOrigin.Y, structureOrigin.Z);
+
+//			printf("Generating structure (%d, %d, %d)\n", structureOrigin.X, structureOrigin.Y, structureOrigin.Z);
+			for (s16 y = structureOrigin.Y; y < structureOrigin.Y + structureSize.Y; y++) {
+				for (s16 z = structureOrigin.Z; z < structureOrigin.Z + structureSize.Z; z++) {
+					i = vm->m_area.index(structureOrigin.X, y, z);
+					for (s16 x = structureOrigin.X; x < structureOrigin.X + structureSize.X; x++, index++, i++) {
+						if(structure[index]) {
+							vm->m_data[i] = nodeTypes[structure[index]];
+						}
+					}
+				}
+			}
+		}
+
+}
+
+
 
 #include "mapgen_v6.h"
 void MapgenV7::generateCaves(int max_stone_y) {
 	PseudoRandom ps(blockseed + 21343);
 
 	int volume_nodes = (node_max.X - node_min.X + 1) *
-					   (node_max.Y - node_min.Y + 1) *
-					   (node_max.Z - node_min.Z + 1);
+			(node_max.Y - node_min.Y + 1) *
+			(node_max.Z - node_min.Z + 1);
 	float cave_amount = NoisePerlin2D(&nparams_v6_def_cave,
-								node_min.X, node_min.Y, seed);
+									  node_min.X, node_min.Y, seed);
 
 	u32 caves_count = MYMAX(0.0, cave_amount) * volume_nodes / 250000;
 	for (u32 i = 0; i < caves_count; i++) {
@@ -518,5 +571,5 @@ void MapgenV7::generateCaves(int max_stone_y) {
 	for (u32 i = 0; i < bruises_count; i++) {
 		CaveV7 cave(this, &ps, true);
 		cave.makeCave(node_min, node_max, max_stone_y);
-	}	
+	}
 }
